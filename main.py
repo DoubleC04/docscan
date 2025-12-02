@@ -3,16 +3,19 @@ import numpy as np
 from PIL import Image
 import cv2
 import threading
-import io
 
 from streamlit_webrtc import webrtc_streamer, VideoProcessorBase, RTCConfiguration
 from docscan.processing.rectify import DocumentRectifier
 from docscan.processing.dewarp import DocumentDewarper
 from docscan.services import pdf_generator
 
-document_rectifier = DocumentRectifier()
-document_dewarper = DocumentDewarper()
 st.set_page_config(layout="wide", page_title="DocScan Pro")
+
+@st.cache_resource
+def load_processors():
+    return DocumentRectifier(), DocumentDewarper()
+
+document_rectifier, document_dewarper = load_processors()
 
 if 'app_mode' not in st.session_state:
     st.session_state.app_mode = "STREAMING"
@@ -23,7 +26,6 @@ if 'scanned_pages' not in st.session_state:
 if 'processing_mode' not in st.session_state:
     st.session_state.processing_mode = "Scan ảnh thông thường"
 
-# --- LỚP XỬ LÝ VIDEO FRAME ---
 class VideoProcessor(VideoProcessorBase):
     def __init__(self):
         self.lock = threading.Lock()
@@ -37,15 +39,24 @@ class VideoProcessor(VideoProcessorBase):
             
         return frame
 
+@st.cache_data(show_spinner="Đang xử lý ảnh...") 
 def process_image(image, mode):
+    processed = image.copy()
+    
+    rectifier, dewarper = load_processors()
+    
     if mode == "Scan ảnh thông thường":
-        return document_rectifier.rectify(image, apply_threshold=True)
+        processed = rectifier.rectify(image, apply_threshold=True)
     elif mode == "Làm phẳng trang":
-        return document_dewarper.dewarp(image)
-    elif mode == "Vá trang bị rách":
-        st.warning("Tính năng 'Vá trang bị rách' sẽ được phát triển trong tương lai.")
-        return image
-    return image
+        processed = dewarper.dewarp(image)
+    
+    if processed is not None:
+        if len(processed.shape) == 2:
+            processed = cv2.cvtColor(processed, cv2.COLOR_GRAY2BGR)
+        elif processed.shape[2] == 4:
+            processed = cv2.cvtColor(processed, cv2.COLOR_BGRA2BGR)
+            
+    return processed
 
 # ==============================================================================
 # GIAO DIỆN SIDEBAR 
@@ -87,7 +98,7 @@ with tab_upload:
     
     processing_mode_upload = st.radio(
         "Chọn chức năng bạn muốn sử dụng:",
-        ("Scan ảnh thông thường", "Làm phẳng trang", "Vá trang bị rách"),
+        ("Scan ảnh thông thường", "Làm phẳng trang"),
         key="radio_upload"
     )
     
@@ -130,7 +141,7 @@ with tab_camera:
             resolution_options = {
                 "Vừa (1280x720)": (1280, 720),
                 "Cao (1920x1080)": (1920, 1080),
-                "Rất cao (3840x2160)": (3840, 2160), # 4K
+                "Rất cao (3840x2160)": (3840, 2160), 
                 "Thấp (640x480)": (640, 480),
             }
             selected_resolution_key = st.selectbox(
@@ -153,7 +164,7 @@ with tab_camera:
         
         st.session_state.processing_mode = st.radio(
             "Chọn chức năng bạn muốn sử dụng:",
-            ("Scan ảnh thông thường", "Làm phẳng trang", "Vá trang bị rách"),
+            ("Scan ảnh thông thường", "Làm phẳng trang"),
             key="radio_camera"
         )
         
@@ -177,7 +188,6 @@ with tab_camera:
                 st.warning("Camera chưa sẵn sàng hoặc chưa có khung hình nào được ghi nhận, vui lòng thử lại.")
 
     elif st.session_state.app_mode == "REVIEWING":
-        # ... (Phần này không cần thay đổi gì)
         st.header("Bước 2: Xem lại và Lựa chọn")
         
         captured_image_np = st.session_state.captured_image

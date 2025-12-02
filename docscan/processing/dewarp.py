@@ -1040,7 +1040,7 @@ class DocumentDewarper:
 
         self.NO_BINARY = 0
 
-        self.DEBUG_LEVEL = 3          # 0=none, 1=some, 2=lots, 3=all
+        self.DEBUG_LEVEL = 0          # 0=none, 1=some, 2=lots, 3=all
         self.DEBUG_OUTPUT = 'screen'    # file, screen, both
 
         self.WINDOW_NAME = 'Dewarp'   # Window name for visualization
@@ -1838,25 +1838,21 @@ class DocumentDewarper:
         return threshfile
 
 
-    def dewarp(self, image_path):
-        """
-        Phương thức chính để làm phẳng ảnh.
-
-        Args:
-            image_input (str or np.ndarray): Đường dẫn tới ảnh hoặc ảnh dạng numpy array.
-            apply_threshold (bool): Áp dụng threshold để làm ảnh đen trắng.
-
-        Returns:
-            np.ndarray: Ảnh đã được làm phẳng hoặc ảnh gốc nếu xử lý thất bại.
-        """
+    def dewarp(self, image_input):
+        if isinstance(image_input, str):
+            img = cv2.imread(image_input)
+            basename = os.path.basename(image_input)
+            name, _ = os.path.splitext(basename)
+        else:
+            img = image_input.copy()
+            name = "doc_image"
+            
         if self.DEBUG_LEVEL > 0 and self.DEBUG_OUTPUT != 'file':
             cv2.namedWindow(self.WINDOW_NAME)
 
         outfiles = []
-
-        img = cv2.imread(image_path)
+        
         small = self.resize_to_screen(img)
-        basename = os.path.basename(image_path)
         name, _ = os.path.splitext(basename)
 
         print('loaded', basename, 'with size', self.imgsize(img),)
@@ -1911,3 +1907,5 @@ class DocumentDewarper:
 
         print('to convert to PDF (requires ImageMagick):')
         print('  convert -compress Group4 ' + ' '.join(outfiles) + ' output.pdf')
+        
+        

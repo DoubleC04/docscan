@@ -1,0 +1,19 @@
+# Python-generated files
+__pycache__/
+*.py[oc]
+build/
+dist/
+wheels/
+*.egg-info
+.env
+
+# Virtual environments
+.venv
+data/
+docs/
+in_class/
+
+utils/
+tests/
+llm_service.py
+repair.py

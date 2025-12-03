@@ -41,7 +41,7 @@ class DocumentDewarper:
 
         self.NO_BINARY = 0
 
-        self.DEBUG_LEVEL = 0          # 0=none, 1=some, 2=lots, 3=all
+        self.DEBUG_LEVEL = 3          # 0=none, 1=some, 2=lots, 3=all
         self.DEBUG_OUTPUT = 'screen'    # file, screen, both
 
         self.WINDOW_NAME = 'Dewarp'   # Window name for visualization
@@ -632,7 +632,7 @@ class DocumentDewarper:
         mask = (regions.max(axis=2) != 0)
 
         display = small.copy()
-        display[mask] = (display[mask]/2) + (regions[mask]/2)
+        display[mask] = (display[mask]//2) + (regions[mask]//2)
 
         for j, cinfo in enumerate(cinfo_list):
             color = self.CCOLORS[j % len(self.CCOLORS)]
@@ -659,8 +659,8 @@ class DocumentDewarper:
         mask = (regions.max(axis=2) != 0)
 
         display = small.copy()
-        display[mask] = (display[mask]/2) + (regions[mask]/2)
-        display[pagemask == 0] /= 4
+        display[mask] = (display[mask]//2) + (regions[mask]//2)
+        display[pagemask == 0] //= 4
 
         self.debug_show(name, 2, 'spans', display)
 
